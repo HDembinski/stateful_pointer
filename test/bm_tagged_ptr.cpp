@@ -32,7 +32,6 @@ static void unique_ptr_access(benchmark::State& state) {
     auto p = std::unique_ptr<T>(new T());
     while (state.KeepRunning()) {
         benchmark::DoNotOptimize(p->x);
-        benchmark::ClobberMemory();
     }
 }
 
@@ -41,7 +40,6 @@ static void tagged_ptr_access(benchmark::State& state) {
     auto p = sp::make_tagged_ptr<T, 4>();
     while (state.KeepRunning()) {
         benchmark::DoNotOptimize(p->x);
-        benchmark::ClobberMemory();
     }
 }
 
