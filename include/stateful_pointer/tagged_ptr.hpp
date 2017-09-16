@@ -98,11 +98,8 @@ public:
       value &= ~(1 << pos);
   }
 
-  /// get raw pointer
-  pointer get() noexcept { return extract_ptr(value); }
-
-  /// get raw pointer (const version)
-  const_pointer get() const noexcept { return extract_ptr(value); }
+  /// get raw pointer in the fast way possible (no checks for nullness)
+  pointer get() const noexcept { return extract_ptr(value); }
 
   /// release ownership of raw pointer, bits remain intact
   pointer release() noexcept {
@@ -120,16 +117,14 @@ public:
     other.value = tmp;
   }
 
-  /// dereference operator
-  reference operator*() noexcept { return *get(); }
-
-  /// dereference operator (const version)
-  const_reference operator*() const noexcept { return *get(); }
+  /// dereference operator, throws error in debug mode if pointer is null
+  typename ::boost::add_lvalue_reference<Tpointee>::type operator*() const {
+    const auto p = get();
+    BOOST_ASSERT(p != pointer());
+    return *p;
+  }
 
   /// member access operator
-  pointer operator->() noexcept { return get(); }
-
-  /// member access operator (const version)
   const_pointer operator->() const noexcept { return get(); }
 
   explicit operator bool() const noexcept { return static_cast<bool>(get()); }

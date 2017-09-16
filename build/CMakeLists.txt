@@ -10,19 +10,30 @@ find_package(Boost 1.63.0 REQUIRED)
 
 include_directories(../include ${Boost_INCLUDE_DIRS})
 
-add_definitions(-O0 -g -fno-sanitize-recover=undefined)
+add_definitions(-fno-sanitize-recover=undefined)
 set(CMAKE_LD_FLAGS ${CMAKE_LD_FLAGS} -fno-sanitize-recover=undefined)
 
 # tests
 enable_testing()
 
-file(GLOB TEST_SOURCES ../test/*.cpp ../examples/*.cpp)
+file(GLOB TEST_SOURCES ../test/test_*.cpp ../examples/*.cpp)
 foreach(SRC IN ITEMS ${TEST_SOURCES})
   if(SRC MATCHES "/([_a-zA-Z0-9]+)\\.cpp")
-    message(${CMAKE_MATCH_1})
     add_executable(${CMAKE_MATCH_1} ${SRC})
-    target_link_libraries(${CMAKE_MATCH_1} ${LIBRARIES})
+    target_compile_options(${CMAKE_MATCH_1} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-Og -g>)
     add_test(${CMAKE_MATCH_1} ${CMAKE_MATCH_1})
+  endif()
+endforeach()
+
+# benchmarks
+file(GLOB TEST_SOURCES ../test/bm_*.cpp)
+foreach(SRC IN ITEMS ${TEST_SOURCES})
+  if(SRC MATCHES "/([_a-zA-Z0-9]+)\\.cpp")
+    foreach(L 0 3)
+      add_executable(${CMAKE_MATCH_1}_o${L} ${SRC})
+      target_compile_options(${CMAKE_MATCH_1}_o${L} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-O${L}>)
+      target_link_libraries(${CMAKE_MATCH_1}_o${L} -lbenchmark -lpthread)
+    endforeach()
   endif()
 endforeach()
 
