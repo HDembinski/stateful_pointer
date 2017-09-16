@@ -1,5 +1,5 @@
-#ifndef BOOST_STATEFUL_POINTER_TAGGED_PTR_HPP
-#define BOOST_STATEFUL_POINTER_TAGGED_PTR_HPP
+#ifndef STATEFUL_POINTER_TAGGED_PTR_HPP
+#define STATEFUL_POINTER_TAGGED_PTR_HPP
 
 #include "boost/align/aligned_alloc.hpp"
 #include "boost/align/alignment_of.hpp"
@@ -7,7 +7,6 @@
 #include "boost/cstdint.hpp"
 #include "boost/type_traits.hpp"
 
-namespace boost {
 namespace stateful_pointer {
 
 namespace detail {
@@ -31,7 +30,7 @@ public:
 
   constexpr tagged_ptr() noexcept : value(0) {}
 
-  // no copy
+  // tagged_ptr models exclusive ownership, no copies allowed 
   tagged_ptr(const tagged_ptr &) = delete;
   tagged_ptr &operator=(const tagged_ptr &) = delete;
 
@@ -49,9 +48,9 @@ public:
 
   /// move constructor that allows conversion between base and derived
   template <typename Upointee,
-            typename = typename enable_if_c<
-                !(is_array<Upointee>::value) &&
-                is_convertible<Upointee *, Tpointee *>::value>::type>
+            typename = typename ::boost::enable_if_c<
+                !(::boost::is_array<Upointee>::value) &&
+                ::boost::is_convertible<Upointee *, Tpointee *>::value>::type>
   tagged_ptr(tagged_ptr<Upointee, Nbits> &&other) noexcept
       : value(other.value) {
     other.value = 0;
@@ -59,9 +58,9 @@ public:
 
   /// move assignment that allows conversion between base and derived
   template <typename Upointee,
-            typename = typename enable_if_c<
-                !(is_array<Upointee>::value) &&
-                is_convertible<Upointee *, Tpointee *>::value>::type>
+            typename = typename ::boost::enable_if_c<
+                !(::boost::is_array<Upointee>::value) &&
+                ::boost::is_convertible<Upointee *, Tpointee *>::value>::type>
   tagged_ptr &operator=(tagged_ptr<Upointee, Nbits> &&other) noexcept {
     if (this != &other) {
       value = other.value;
@@ -74,7 +73,7 @@ public:
     auto tp = get();
     if (tp) {
       tp->~Tpointee();
-      alignment::aligned_free(tp);
+      ::boost::alignment::aligned_free(tp);
     }
   }
 
@@ -142,9 +141,9 @@ private:
   static constexpr bits_type tag_mask = ~ptr_mask;
 
   static bits_type alloc() {
-    return reinterpret_cast<bits_type>(alignment::aligned_alloc(
+    return reinterpret_cast<bits_type>(::boost::alignment::aligned_alloc(
         detail::max(detail::pow2(Nbits),
-                    alignment::alignment_of<Tpointee>::value),
+                    ::boost::alignment::alignment_of<Tpointee>::value),
         sizeof(Tpointee)));
   }
 
@@ -194,7 +193,6 @@ tagged_ptr<Tpointee, Nbits> make_tagged_ptr(TArgs &&... args) {
   new (reinterpret_cast<Tpointee *>(p.value))
       Tpointee(std::forward<TArgs>(args)...);
   return p;
-}
 }
 }
 

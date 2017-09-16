@@ -1,9 +1,9 @@
-#include "boost/stateful_pointer/tagged_ptr.hpp"
+#include "stateful_pointer/tagged_ptr.hpp"
 #include "boost/core/lightweight_test.hpp"
 #include "boost/utility/binary.hpp"
 
 int main() {
-    using namespace boost::stateful_pointer;
+    using namespace stateful_pointer;
 
     {
         BOOST_TEST_EQ(detail::make_ptr_mask(0), ~0);
