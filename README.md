@@ -29,10 +29,10 @@ int main() {
     auto p = make_tagged_ptr<A, 4>(3); // 3 is passed to the ctor of A
 
     // set the 4 bits to some values
-    p.bits(BOOST_BINARY( 1010 )); // that's 20 in decimal
+    p.bits(BOOST_BINARY( 1010 )); // that's 10 in decimal
 
     std::cout << "a = " << p->a << ", bits = " << p.bits() << std::endl;
 
-    // prints: "a = 3, bits = 20"
+    // prints: "a = 3, bits = 10"
 }
 ```
