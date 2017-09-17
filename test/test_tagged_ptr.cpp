@@ -5,7 +5,7 @@
 int main() {
     using namespace stateful_pointer;
 
-    {
+    {   // check that ptr_mask is correctly made
         BOOST_TEST_EQ(detail::make_ptr_mask(0), ~0);
         BOOST_TEST_EQ(detail::make_ptr_mask(1), ~1);
         BOOST_TEST_EQ(detail::make_ptr_mask(2), ~(1 | 2));
@@ -13,7 +13,6 @@ int main() {
     }
 
     static unsigned destructor_count_test_type = 0;
-
     struct test_type {
         int a; char b;
         test_type() : a(0), b(0) {}
@@ -64,10 +63,13 @@ int main() {
     BOOST_TEST_EQ(destructor_count_test_type, 1);
 
     destructor_count_test_type = 0;
-    {   // array version
+    {   // basic usage of array version
         auto a = make_tagged_array<test_type, 2>(10, 2, 3);
 
         BOOST_TEST(!!a);
+        BOOST_TEST_EQ(a.size(), 10);
+        BOOST_TEST_EQ(a->a, 2);
+        BOOST_TEST_EQ(a->b, 3);
         BOOST_TEST_EQ(a[0].a, 2);
         BOOST_TEST_EQ(a[0].b, 3);
         BOOST_TEST_EQ(a[9].a, 2);
@@ -103,19 +105,17 @@ int main() {
     }
 
     destructor_count_test_type = 0;
-    {
+    {   // move ctor and assign
         auto p = make_tagged_ptr<test_type, 2>(2, 3);
         p.bit(0, false);
         p.bit(1, true);
 
-        // move ctor
         tagged_ptr<test_type, 2> q(std::move(p));
         BOOST_TEST_EQ(q.bit(0), false);
         BOOST_TEST_EQ(q.bit(1), true);
         BOOST_TEST_EQ(q->a, 2);
         BOOST_TEST_EQ(q->b, 3);
 
-        // move assign
         tagged_ptr<test_type, 2> r;
         r = std::move(q);
         BOOST_TEST_EQ(r.bit(0), false);
@@ -152,35 +152,36 @@ int main() {
     }
     BOOST_TEST_EQ(destructor_count_test_type, 2);
 
-    static unsigned destructor_count_base = 0;
-    struct base {
-        int a = 1;
-        virtual ~base() { ++destructor_count_base; }
-    };
-
-    static unsigned destructor_count_derived = 0;
-    struct derived : public base {
-        char b = 2;
-        virtual ~derived() { ++destructor_count_derived; }
-    };
-
-    struct derived2 : public base {};
-
     {   // conversion derived <-> base
-        auto d = make_tagged_ptr<derived, 3>();
-        d.bits(BOOST_BINARY( 101 ));
-        tagged_ptr<base, 3> b = std::move(d);
-        BOOST_TEST_EQ(b.bits(), BOOST_BINARY( 101 ));
-        BOOST_TEST_EQ(b->a, 1);
-        auto dp = dynamic_cast<derived*>(b.get());
-        BOOST_TEST(dp);
-        BOOST_TEST_EQ(dp->a, 1);
-        BOOST_TEST_EQ(dp->b, 2);
-        auto d2p = dynamic_cast<derived2*>(b.get());
-        BOOST_TEST(!d2p);
-    }
-    BOOST_TEST_EQ(destructor_count_base, 1);
-    BOOST_TEST_EQ(destructor_count_derived, 1);
+        static unsigned destructor_count_base = 0;
+        struct base {
+            int a = 1;
+            virtual ~base() { ++destructor_count_base; }
+        };
 
+        static unsigned destructor_count_derived = 0;
+        struct derived : public base {
+            char b = 2;
+            virtual ~derived() { ++destructor_count_derived; }
+        };
+
+        struct derived2 : public base {};
+
+        {
+            auto d = make_tagged_ptr<derived, 3>();
+            d.bits(BOOST_BINARY( 101 ));
+            tagged_ptr<base, 3> b = std::move(d);
+            BOOST_TEST_EQ(b.bits(), BOOST_BINARY( 101 ));
+            BOOST_TEST_EQ(b->a, 1);
+            auto dp = dynamic_cast<derived*>(b.get());
+            BOOST_TEST(dp);
+            BOOST_TEST_EQ(dp->a, 1);
+            BOOST_TEST_EQ(dp->b, 2);
+            auto d2p = dynamic_cast<derived2*>(b.get());
+            BOOST_TEST(!d2p);
+        }
+        BOOST_TEST_EQ(destructor_count_base, 1);
+        BOOST_TEST_EQ(destructor_count_derived, 1);
+    }
     return boost::report_errors();
 }

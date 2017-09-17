@@ -20,10 +20,11 @@ constexpr uintptr_t make_ptr_mask(unsigned n) noexcept {
 }
 }
 
-template <typename Tpointee, unsigned Nbits> class tagged_ptr {
+template <typename T, unsigned Nbits> class tagged_ptr {
 public:
   using bits_type = uintptr_t;
-  using element_type = typename ::boost::remove_extent<Tpointee>::type;
+  using pos_type = std::size_t; // only for array version
+  using element_type = typename ::boost::remove_extent<T>::type;
   using pointer = element_type *;
   using reference = element_type &;
 
@@ -46,21 +47,18 @@ public:
   }
 
   /// move constructor that allows conversion between base and derived
-  template <typename Upointee,
-            typename = typename ::boost::enable_if_c<
-                !(::boost::is_array<Upointee>::value) &&
-                ::boost::is_convertible<Upointee *, Tpointee *>::value>::type>
-  tagged_ptr(tagged_ptr<Upointee, Nbits> &&other) noexcept
-      : value(other.value) {
+  template <typename U, typename = typename ::boost::enable_if_c<
+                            !(::boost::is_array<U>::value) &&
+                            ::boost::is_convertible<U *, T *>::value>::type>
+  tagged_ptr(tagged_ptr<U, Nbits> &&other) noexcept : value(other.value) {
     other.value = 0;
   }
 
   /// move assignment that allows conversion between base and derived
-  template <typename Upointee,
-            typename = typename ::boost::enable_if_c<
-                !(::boost::is_array<Upointee>::value) &&
-                ::boost::is_convertible<Upointee *, Tpointee *>::value>::type>
-  tagged_ptr &operator=(tagged_ptr<Upointee, Nbits> &&other) noexcept {
+  template <typename U, typename = typename ::boost::enable_if_c<
+                            !(::boost::is_array<U>::value) &&
+                            ::boost::is_convertible<U *, T *>::value>::type>
+  tagged_ptr &operator=(tagged_ptr<U, Nbits> &&other) noexcept {
     if (this != &other) {
       value = other.value;
       other.value = 0;
@@ -71,14 +69,17 @@ public:
   ~tagged_ptr() {
     auto tp = get();
     if (tp) {
-      if (::boost::is_array<Tpointee>::value) {
+      if (::boost::is_array<T>::value) {
         auto iter = tp;
-        auto end_p = array_end_p();
+        auto end_p = array_end_p(tp);
         tp = reinterpret_cast<pointer>(end_p);
-        auto end = *end_p;
-        while (iter != end)
-          (iter++)->~element_type();
+        if (!::boost::has_trivial_destructor<element_type>::value) {
+          auto end = *end_p;
+          while (iter != end)
+            (iter++)->~element_type();
+        }
       } else {
+        // automatically skipped if T has trivial destructor
         tp->~element_type();
       }
       ::boost::alignment::aligned_free(tp);
@@ -92,14 +93,6 @@ public:
   void bits(bits_type b) noexcept {
     value &= ptr_mask;       // clear old bits
     value |= (b & tag_mask); // set new bits
-  }
-
-  /// get all bits, including ptr bits, as integral type (not safe!)
-  bits_type unsafe_bits() const noexcept { return value; }
-
-  /// set all bits, including the ptr bits, via integral type (not safe!)
-  void unsafe_bits(bits_type b) noexcept {
-    value = b;
   }
 
   /// get bit at position pos
@@ -127,11 +120,7 @@ public:
   /// reset ptr and bits to p
   void reset(tagged_ptr p = tagged_ptr()) noexcept { p.swap(*this); }
 
-  void swap(tagged_ptr &other) noexcept {
-    auto tmp = value;
-    value = other.value;
-    other.value = tmp;
-  }
+  void swap(tagged_ptr &other) noexcept { std::swap(value, other.value); }
 
   /// dereference operator, throws error in debug mode if pointer is null
   auto operator*() -> reference const {
@@ -141,12 +130,20 @@ public:
   }
 
   /// array element access (only for array version)
-  template <typename U = Tpointee,
+  template <typename U = T,
             typename = typename ::boost::enable_if<::boost::is_array<U>>::type>
-  reference operator[](std::size_t i) const {
-    const auto p = get() + i;
-    BOOST_ASSERT(p < *array_end_p());
-    return *p;
+  reference operator[](pos_type i) const {
+    auto p = get();
+    BOOST_ASSERT((p + i) < *array_end_p(p));
+    return *(p + i);
+  }
+
+  /// array size (only for array version)
+  template <typename U = T,
+            typename = typename ::boost::enable_if<::boost::is_array<U>>::type>
+  pos_type size() const {
+    const auto p = get();
+    return *array_end_p(p) - p;
   }
 
   /// member access operator
@@ -164,8 +161,9 @@ private:
     return reinterpret_cast<pointer>(v & ptr_mask);
   }
 
-  pointer* array_end_p() const noexcept {
-    return reinterpret_cast<pointer*>(reinterpret_cast<char*>(get()) - sizeof(pointer));
+  static pointer *array_end_p(pointer p) noexcept {
+    return reinterpret_cast<pointer *>(reinterpret_cast<char *>(p) -
+                                       sizeof(pointer));
   };
 
   friend bool operator==(const tagged_ptr &a, const tagged_ptr &b) noexcept {
@@ -194,44 +192,44 @@ private:
 
   friend void swap(tagged_ptr &a, tagged_ptr &b) noexcept { a.swap(b); }
 
-  template <typename T, unsigned N> friend class tagged_ptr;
+  template <typename U, unsigned M> friend class tagged_ptr;
 
   // templated friend function cannot be implemented inline
-  template <typename T, unsigned N, class... Args>
-  friend tagged_ptr<T, N> make_tagged_ptr(Args &&...);
+  template <typename U, unsigned M, class... Args>
+  friend tagged_ptr<U, M> make_tagged_ptr(Args &&...);
 
   // templated friend function cannot be implemented inline
-  template <typename T, unsigned N, class... Args>
-  friend tagged_ptr<T[], N> make_tagged_array(std::size_t, Args &&...);
+  template <typename U, unsigned M, class... Args>
+  friend tagged_ptr<U[], M> make_tagged_array(std::size_t, Args &&...);
 
   bits_type value;
 };
 
-template <typename Tpointee, unsigned Nbits, class... TArgs>
-tagged_ptr<Tpointee, Nbits> make_tagged_ptr(TArgs &&... args) {
-  tagged_ptr<Tpointee, Nbits> p;
+template <typename T, unsigned Nbits, class... Args>
+tagged_ptr<T, Nbits> make_tagged_ptr(Args &&... args) {
+  tagged_ptr<T, Nbits> p;
   auto address = ::boost::alignment::aligned_alloc(
-        detail::max(detail::pow2(Nbits),
-                    ::boost::alignment::alignment_of<Tpointee>::value),
-        sizeof(Tpointee));
+      detail::max(detail::pow2(Nbits),
+                  ::boost::alignment::alignment_of<T>::value),
+      sizeof(T));
   p.value = reinterpret_cast<decltype(p.value)>(address);
-  new (address) Tpointee(std::forward<TArgs>(args)...);
+  new (address) T(std::forward<Args>(args)...);
   return p;
 }
 
-template <typename Tpointee, unsigned Nbits, class... TArgs>
-tagged_ptr<Tpointee[], Nbits> make_tagged_array(std::size_t size, TArgs &&... args) {
-  tagged_ptr<Tpointee[], Nbits> p;
-  auto address = reinterpret_cast<char*>(::boost::alignment::aligned_alloc(
-        detail::max(detail::pow2(Nbits),
-                    ::boost::alignment::alignment_of<Tpointee>::value),
-        sizeof(Tpointee*) + size * sizeof(Tpointee)));
-  auto iter = reinterpret_cast<Tpointee*>(address + sizeof(Tpointee*));
+template <typename T, unsigned Nbits, class... Args>
+tagged_ptr<T[], Nbits> make_tagged_array(std::size_t size, Args &&... args) {
+  tagged_ptr<T[], Nbits> p;
+  auto address = reinterpret_cast<char *>(::boost::alignment::aligned_alloc(
+      detail::max(detail::pow2(Nbits),
+                  ::boost::alignment::alignment_of<T>::value),
+      sizeof(T *) + size * sizeof(T)));
+  auto iter = reinterpret_cast<T *>(address + sizeof(T *));
   const auto end = iter + size;
-  *reinterpret_cast<Tpointee**>(address) = end;
+  *reinterpret_cast<T **>(address) = end;
   p.value = reinterpret_cast<decltype(p.value)>(iter);
   while (iter != end)
-    new (iter++) Tpointee(std::forward<TArgs>(args)...);
+    new (iter++) T(std::forward<Args>(args)...);
   return p;
 }
 }
