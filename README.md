@@ -12,15 +12,16 @@ Code is released under the **Boost Software License v1.0** (see LICENSE file).
 
 Like `std::unique_ptr` in interface and behavior, but encodes `N` extra bits of information inside pointer, using no additional space.
 
-```C++
-#include <stateful_pointer/tagged_ptr.hpp>
-#include <boost/utility/binary.hpp> // macro to make binary literals
+```c++
+#include "stateful_pointer/tagged_ptr.hpp"
+#include "boost/utility/binary.hpp" // macro to make binary literals
+
+using namespace stateful_pointer;
 
 // tagged_ptr has the same size as a normal pointer
 static_assert(sizeof(tagged_ptr<A, 4>) == sizeof(void*));
 
 int main() {
-    using namespace stateful_pointer;
 
     // class to be allocated on the heap
     struct A {
@@ -42,7 +43,23 @@ int main() {
 
 ## String
 
-The worlds most compact STL-compliant string with *small string optimization*. Has the size of a single pointer and stores up to 7 characters without allocating extra memory from the heap.
+The World's most compact STL-compliant string with *small string optimization*. Has the size of a mere pointer and yet stores up to 7 characters (on a 64-bit system) without allocating extra memory from the heap.
+
+```c++
+#include "stateful_pointer/string.hpp"
+
+using namespace stateful_pointer;
+
+// string has the same size as a normal pointer
+static_assert(sizeof(string) == sizeof(void*));
+
+int main() {
+    string s("foo bar"); // small string optimisation: no heap allocation
+    std::cout << s << std::endl;
+
+    // prints: "foo bar"
+}
+```
 
 This one is still in development, a lot of the standard interface is still missing.
 
