@@ -64,6 +64,18 @@ int main() {
     BOOST_TEST_EQ(destructor_count_test_type, 1);
 
     destructor_count_test_type = 0;
+    {   // array version
+        auto a = make_tagged_array<test_type, 2>(10, 2, 3);
+
+        BOOST_TEST(!!a);
+        BOOST_TEST_EQ(a[0].a, 2);
+        BOOST_TEST_EQ(a[0].b, 3);
+        BOOST_TEST_EQ(a[9].a, 2);
+        BOOST_TEST_EQ(a[9].b, 3);
+    }
+    BOOST_TEST_EQ(destructor_count_test_type, 10);
+
+    destructor_count_test_type = 0;
     {   // null vs default constructed
         auto p = tagged_ptr<test_type, 3>(); // null
         BOOST_TEST(p == (tagged_ptr<test_type, 3>()));
