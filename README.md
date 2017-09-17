@@ -44,15 +44,15 @@ int main() {
 
 In optimized builds, the performance of all pointers in the *Stateful Pointer Library* is similar to `std::unique_ptr`. Most importantly, access is as fast. Pointer creation is at most 10 % slower and becomes negligible compared to the allocation and initialization cost of larger pointees.
 
-| Benchmark                                      |  Time  |
-| ---------------------------------------------- | -----: |
-| unique_ptr_creation<char>                      | 29 ns  |
-| tagged_ptr_creation<char>                      | 32 ns  |
-| unique_ptr_creation<std::array<char, 256>>     | 52 ns  |
-| tagged_ptr_creation<std::array<char, 256>>     | 54 ns  |
-| unique_ptr_access<char>                        |  2 ns  |
-| tagged_ptr_access<char>                        |  2 ns  |
-| unique_ptr_access<std::array<char, 256>>       |  2 ns  |
-| tagged_ptr_access<std::array<char, 256>>       |  2 ns  |
+|Benchmark                                   |CPU [ns]|
+|:-------------------------------------------|-------:|
+|`unique_ptr_creation<char>`                 |      29|
+|`tagged_ptr_creation<char>`                 |      32|
+|`unique_ptr_creation<std::array<char, 256>>`|      70|
+|`tagged_ptr_creation<std::array<char, 256>>`|      72|
+|`unique_ptr_access<char>`                   |       2|
+|`tagged_ptr_access<char>`                   |       2|
+|`unique_ptr_access<std::array<char, 256>>`  |       2|
+|`tagged_ptr_access<std::array<char, 256>>`  |       2|
 
-(Run on (4 X 3000 MHz CPU s), compiled with -O3)
+([Google benchmark library](https://github.com/google/benchmark) run on 4x3GHz CPUs, compiled with -O3)
