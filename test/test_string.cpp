@@ -2,6 +2,7 @@
 #include "boost/core/lightweight_test.hpp"
 #include "stdexcept"
 #include "algorithm"
+#include "sstream"
 
 using namespace stateful_pointer;
 
@@ -46,6 +47,18 @@ int main() {
         BOOST_TEST(!s6.empty());
         BOOST_TEST_EQ(s6.size(), 5);
         BOOST_TEST(s6 == "aaaaa");
+    }
+
+    {   // ostream operator
+        std::ostringstream os1;
+        string s1("abc");
+        os1 << s1;
+        BOOST_TEST_EQ(s1, os1.str());
+
+        std::ostringstream os2;
+        string s2("abcdefghijklmnopqrstuvwxyz");
+        os2 << s2;
+        BOOST_TEST_EQ(s2, os2.str());
     }
 
     return boost::report_errors();

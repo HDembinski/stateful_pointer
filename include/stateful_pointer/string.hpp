@@ -8,9 +8,16 @@
 #include "algorithm"
 #include "boost/utility/binary.hpp"
 #include "cstddef"
+#include "ostream"
 #include "stdexcept"
 
 namespace stateful_pointer {
+
+namespace detail {
+template <typename T, typename = decltype(std::begin(std::declval<T &>()),
+                                          std::end(std::declval<T &>()))>
+struct is_sequence {};
+}
 
 template <typename TChar> class basic_string {
   using tagged_ptr_t = tagged_ptr<TChar[], 1>;
@@ -44,56 +51,52 @@ public:
     }
   }
 
-  basic_string(const basic_string& other, pos_type pos, pos_type count) {
+  basic_string(const basic_string &other, pos_type pos, pos_type count) {
     auto first = other.begin() + pos;
-    priv_assign(first, std::min(other.end(), first + count));
+    assign_impl(first, std::min(other.end(), first + count));
   }
 
-  basic_string(const basic_string& other, pos_type pos) {
-    priv_assign(other.begin() + pos, other.end());
+  basic_string(const basic_string &other, pos_type pos) {
+    assign_impl(other.begin() + pos, other.end());
   }
 
   basic_string(const value_type *s, pos_type count) {
     if (count > 0 && !s)
       throw std::logic_error("null in constructor not valid");
-    priv_assign(s, s + count);
-   }
+    assign_impl(s, s + count);
+  }
 
   basic_string(const value_type *s) {
     if (!s)
       throw std::logic_error("null in constructor not valid");
     auto end = s;
-    while (*end++);
-    priv_assign(s, --end);
+    while (*end++)
+      ;
+    assign_impl(s, --end);
   }
 
-  template <typename InputIt>
-  basic_string(InputIt first, InputIt last) {
-    priv_assign(first, last);
+  template <typename InputIt> basic_string(InputIt first, InputIt last) {
+    assign_impl(first, last);
   }
 
   ~basic_string() {
     if (!value.bit(0)) { // we are in small string optimisation mode
       // prevent tagged_ptr destructor from running
-      reinterpret_cast<bits_type &>(value) = 0; 
+      reinterpret_cast<bits_type &>(value) = 0;
     }
   }
 
   const_iterator begin() const noexcept {
-    return priv_begin<const_iterator>(value);
+    return begin_impl<const_iterator>(value);
   }
 
   const_iterator end() const noexcept {
-    return priv_end<const_iterator>(value);
+    return end_impl<const_iterator>(value);
   }
 
-  iterator begin() noexcept {
-    return priv_begin<iterator>(value);
-  }
+  iterator begin() noexcept { return begin_impl<iterator>(value); }
 
-  iterator end() noexcept {
-    return priv_end<iterator>(value);
-  }
+  iterator end() noexcept { return end_impl<iterator>(value); }
 
   bool empty() const noexcept {
     return reinterpret_cast<const bits_type &>(value) == 0 || size() == 0;
@@ -109,27 +112,35 @@ public:
 
   pos_type length() const noexcept { return size(); }
 
-  bool operator==(const_pointer s) const {
+  bool operator==(const value_type *s) const {
     auto send = s;
-    while (*send++); --send;
+    while (*send++)
+      ;
+    --send;
     auto first = begin();
     auto last = end();
-    return (std::distance(first, last) == std::distance(s, send)) && std::equal(first, last, s);
+    return (std::distance(first, last) == std::distance(s, send)) &&
+           std::equal(first, last, s);
   }
 
-  const_reference operator[](pos_type i) const {
-    return *(begin() + i); 
+  template <typename Container, typename = detail::is_sequence<Container>>
+  bool operator==(const Container &c) const {
+    auto cfirst = std::begin(c);
+    auto cend = std::end(c);
+    auto first = begin();
+    auto last = end();
+    return (std::distance(first, last) == std::distance(cfirst, cend)) &&
+           std::equal(first, last, cfirst);
   }
 
-  reference operator[](pos_type i) {
-    return *(begin() + i); 
-  }
+  const_reference operator[](pos_type i) const { return *(begin() + i); }
+
+  reference operator[](pos_type i) { return *(begin() + i); }
 
 private:
   static constexpr bits_type size_mask = BOOST_BINARY(11111110);
 
-  template <typename InputIt>
-  void priv_assign(InputIt first, InputIt last) {
+  template <typename InputIt> void assign_impl(InputIt first, InputIt last) {
     const auto n = std::distance(first, last);
 
     if (value.bit(0) && n <= size()) {
@@ -162,13 +173,11 @@ private:
     *(cp + n) = 0;
   }
 
-  template <typename It, typename T>
-  static It priv_begin(T& t) noexcept {
+  template <typename It, typename T> static It begin_impl(T &t) noexcept {
     return t.bit(0) ? t.get() : reinterpret_cast<It>(&t) + 1;
   }
 
-  template <typename It, typename T>
-  static It priv_end(T& t) noexcept {
+  template <typename It, typename T> static It end_impl(T &t) noexcept {
     if (t.bit(0)) {
       const auto n = t.size();
       return t.get() + (n ? n - 1 : 0);
@@ -178,13 +187,17 @@ private:
     }
   }
 
+  friend std::ostream &operator<<(std::ostream &os, const basic_string &s) {
+    for (const auto &ch : s)
+      os << ch;
+    return os;
+  }
+
   tagged_ptr_t value;
 };
 
 using string = basic_string<char>;
 using wstring = basic_string<wchar_t>;
-
-
 }
 
 #endif
