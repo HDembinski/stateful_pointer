@@ -40,9 +40,17 @@ int main() {
 }
 ```
 
+## String
+
+The worlds most compact STL-compliant string with *small string optimization*. Has the size of a single pointer and stores up to 7 characters without allocating extra memory from the heap.
+
+This one is still in development, a lot of the standard interface is still missing.
+
 ## Performance
 
-In optimized builds, the performance of all pointers in the *Stateful Pointer Library* is similar to `std::unique_ptr`. Most importantly, access is as fast. Pointer creation is at most 10 % slower and becomes negligible compared to the allocation and initialization cost of larger pointees.
+### `tagged_ptr` vs `std::unique_ptr`
+
+In optimized builds, the performance is similar. Most importantly, access is as fast. Pointer creation is at most 10 % slower and becomes negligible compared to the allocation and initialization cost of larger pointees.
 
 |Benchmark                                   |CPU [ns]|
 |:-------------------------------------------|-------:|
