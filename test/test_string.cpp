@@ -1,13 +1,25 @@
-#include "stateful_pointer/string.hpp"
+#include "boost/align/aligned_alloc.hpp"
 #include "boost/core/lightweight_test.hpp"
 #include "stdexcept"
 #include "algorithm"
 #include "sstream"
 
+static auto alloc_count = 0u;
+namespace boost { namespace alignment {
+void* custom_aligned_alloc(std::size_t alignment, std::size_t size) noexcept
+{
+    ++alloc_count;
+    return aligned_alloc(alignment, size);
+}
+}}
+#define aligned_alloc(alignment, size) custom_aligned_alloc(alignment, size)
+#include "stateful_pointer/string.hpp"
+
 using namespace stateful_pointer;
 
 int main() {
 
+    alloc_count = 0;
     {   // ctors
         string s1;
         BOOST_TEST_EQ(s1.size(), 0u);
@@ -27,26 +39,33 @@ int main() {
         BOOST_TEST_EQ(s3[1], 'b');
         BOOST_TEST_EQ(s3[2], 'c');
         BOOST_TEST(s3 == "abc");
+        BOOST_TEST_EQ(alloc_count, 0);
 
         string s3a("abcdefghijklmnopqrstuvwxyz"); // uses normal allocation
         BOOST_TEST(!s3a.empty());
         BOOST_TEST_EQ(s3a.size(), 26);
+        BOOST_TEST_EQ(s3a[0], 'a');
+        BOOST_TEST_EQ(s3a[25], 'z');
         BOOST_TEST(s3a == "abcdefghijklmnopqrstuvwxyz");
+        BOOST_TEST_EQ(alloc_count, 1);
 
         string s4(s3a, 24);
         BOOST_TEST(!s4.empty());
         BOOST_TEST_EQ(s4.size(), 2);
         BOOST_TEST(s4 == "yz");
+        BOOST_TEST_EQ(alloc_count, 1);
 
         string s5(s3a, 1, 20);
         BOOST_TEST(!s5.empty());
         BOOST_TEST_EQ(s5.size(), 20);
         BOOST_TEST(s5 == "bcdefghijklmnopqrstu");
+        BOOST_TEST_EQ(alloc_count, 2);
 
-        string s6(5, 'a');
+        string s6(7, 'a'); // uses small string opt.
         BOOST_TEST(!s6.empty());
-        BOOST_TEST_EQ(s6.size(), 5);
-        BOOST_TEST(s6 == "aaaaa");
+        BOOST_TEST_EQ(s6.size(), 7);
+        BOOST_TEST(s6 == "aaaaaaa");
+        BOOST_TEST_EQ(alloc_count, (sizeof(void*) == 8 ? 2 : 3));
     }
 
     {   // ostream operator
