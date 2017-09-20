@@ -123,7 +123,7 @@ public:
   void swap(tagged_ptr &other) noexcept { std::swap(value, other.value); }
 
   /// dereference operator, throws error in debug mode if pointer is null
-  auto operator*() -> reference const {
+  auto operator*() const -> reference {
     const auto p = get();
     BOOST_ASSERT(p != pointer());
     return *p;
