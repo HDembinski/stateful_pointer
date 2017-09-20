@@ -26,7 +26,7 @@ int main() {
         BOOST_TEST(s1.empty());
 
         BOOST_TEST_THROWS(string(nullptr), std::logic_error);
-        
+
         string s2("");
         BOOST_TEST(s2.empty());
         BOOST_TEST_EQ(s2.size(), 0);
