@@ -11,18 +11,18 @@
 namespace stateful_pointer {
 
 namespace detail {
-constexpr uintptr_t max(uintptr_t a, uintptr_t b) { return a > b ? a : b; }
+constexpr ::boost::uintptr_t max(::boost::uintptr_t a, ::boost::uintptr_t b) { return a > b ? a : b; }
 constexpr unsigned pow2(unsigned n) noexcept {
   return n > 0 ? 2 * pow2(n - 1) : 1;
 }
-constexpr uintptr_t make_ptr_mask(unsigned n) noexcept {
-  return ~uintptr_t(0) << n;
+constexpr ::boost::uintptr_t make_ptr_mask(unsigned n) noexcept {
+  return ~::boost::uintptr_t(0) << n;
 }
 }
 
 template <typename T, unsigned Nbits> class tagged_ptr {
 public:
-  using bits_type = uintptr_t;
+  using bits_type = ::boost::uintptr_t;
   using pos_type = std::size_t; // only for array version
   using element_type = typename ::boost::remove_extent<T>::type;
   using pointer = element_type *;
