@@ -46,7 +46,7 @@ int main() {
 
 ## String
 
-The World's most compact STL-compliant string with *small string optimization*. Has the size of a mere pointer and yet stores up to 7 characters (on a 64-bit system) without allocating extra memory on the heap.
+The World's most compact STL-compatible string with *small string optimization*. Has the size of a mere pointer and yet stores up to 7 characters (on a 64-bit system) without allocating extra memory on the heap.
 
 ```c++
 #include "stateful_pointer/string.hpp"
