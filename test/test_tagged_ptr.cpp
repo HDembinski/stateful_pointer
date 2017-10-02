@@ -63,8 +63,23 @@ int main() {
     BOOST_TEST_EQ(destructor_count_test_type, 1);
 
     destructor_count_test_type = 0;
-    {   // basic usage of array version
+    {   // basic usage of dynamic-sized array version
         auto a = make_tagged<test_type[], 2>(10, 2, 3);
+
+        BOOST_TEST(!!a);
+        BOOST_TEST_EQ(a.size(), 10);
+        BOOST_TEST_EQ(a->a, 2);
+        BOOST_TEST_EQ(a->b, 3);
+        BOOST_TEST_EQ(a[0].a, 2);
+        BOOST_TEST_EQ(a[0].b, 3);
+        BOOST_TEST_EQ(a[9].a, 2);
+        BOOST_TEST_EQ(a[9].b, 3);
+    }
+    BOOST_TEST_EQ(destructor_count_test_type, 10);
+
+    destructor_count_test_type = 0;
+    {   // basic usage of fixed-sized array version
+        auto a = make_tagged<test_type[10], 2>(2, 3);
 
         BOOST_TEST(!!a);
         BOOST_TEST_EQ(a.size(), 10);
