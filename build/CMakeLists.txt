@@ -25,7 +25,7 @@ foreach(SRC IN ITEMS ${TEST_SOURCES})
 endforeach()
 
 # benchmarks
-if (${BENCHMARK_INCLUDE_DIRS} AND ${BENCHMARK_LIBRARY})
+if (BENCHMARK_INCLUDE_DIRS AND BENCHMARK_LIBRARY)
   include_directories(${BENCHMARK_INCLUDE_DIRS})
   file(GLOB TEST_SOURCES ../test/bm_*.cpp)
   foreach(SRC IN ITEMS ${TEST_SOURCES})
@@ -45,7 +45,7 @@ endif()
 file(GLOB_RECURSE
      ALL_SOURCE_FILES
      LIST_DIRECTORIES false
-     ../test/*_test.cpp ../include/*.hpp
+     ../test/*.cpp ../include/*.hpp
      )
 
 add_custom_target(clf
