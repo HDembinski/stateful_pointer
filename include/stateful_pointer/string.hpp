@@ -1,13 +1,13 @@
 #ifndef STATEFUL_POINTER_STRING_HPP
 #define STATEFUL_POINTER_STRING_HPP
 
-#include "stateful_pointer/tagged_ptr.hpp"
 #include "boost/cstdint.hpp"
+#include "stateful_pointer/tagged_ptr.hpp"
 // #include "boost/assert.hpp"
 // #include "boost/type_traits.hpp"
 #include "boost/utility/binary.hpp"
-#include <cstddef>
 #include <algorithm>
+#include <cstddef>
 #include <ostream>
 #include <stdexcept>
 
@@ -17,7 +17,7 @@ namespace detail {
 template <typename T, typename = decltype(std::begin(std::declval<T &>()),
                                           std::end(std::declval<T &>()))>
 struct is_sequence {};
-}
+} // namespace detail
 
 template <typename TChar> class basic_string {
   using tagged_ptr_t = tagged_ptr<TChar[], 1>;
@@ -198,6 +198,6 @@ private:
 
 using string = basic_string<char>;
 using wstring = basic_string<wchar_t>;
-}
+} // namespace stateful_pointer
 
 #endif

@@ -11,7 +11,9 @@
 namespace stateful_pointer {
 
 namespace detail {
-constexpr ::boost::uintptr_t max(::boost::uintptr_t a, ::boost::uintptr_t b) { return a > b ? a : b; }
+constexpr ::boost::uintptr_t max(::boost::uintptr_t a, ::boost::uintptr_t b) {
+  return a > b ? a : b;
+}
 constexpr unsigned pow2(unsigned n) noexcept {
   return n > 0 ? 2 * pow2(n - 1) : 1;
 }
@@ -19,7 +21,7 @@ constexpr ::boost::uintptr_t make_ptr_mask(unsigned n) noexcept {
   return ~::boost::uintptr_t(0) << n;
 }
 template <typename T, unsigned N> struct make_dispatch;
-}
+} // namespace detail
 
 template <typename T, unsigned Nbits> class tagged_ptr {
 public:
@@ -117,7 +119,8 @@ public:
     return *p;
   }
 
-  /// array element access (only for array version), throws error in debug mode if bounds are violated
+  /// array element access (only for array version), throws error in debug mode
+  /// if bounds are violated
   template <typename U = T,
             typename = typename ::boost::enable_if<::boost::is_array<U>>::type>
   reference operator[](pos_type i) const {
@@ -130,7 +133,7 @@ public:
   template <typename U = T,
             typename = typename ::boost::enable_if<::boost::is_array<U>>::type>
   pos_type size() const noexcept {
-    return size_dispatch<U>::value(get());
+    return size_dispatch<U>::doit(get());
   }
 
   /// member access operator
@@ -153,20 +156,15 @@ private:
                                        sizeof(pointer));
   };
 
-  template <typename U>
-  struct size_dispatch {
-    static pos_type value(pointer p) noexcept {
-      return *array_end_p(p) - p;
-    }
+  template <typename U> struct size_dispatch {
+    static pos_type doit(pointer p) noexcept { return *array_end_p(p) - p; }
   };
 
-  template <typename U, std::size_t N>
-  struct size_dispatch<U[N]> {
-    static pos_type value(pointer) noexcept { return N; }
+  template <typename U, std::size_t N> struct size_dispatch<U[N]> {
+    static pos_type doit(pointer) noexcept { return N; }
   };
 
-  template <typename U>
-  struct delete_dispatch {
+  template <typename U> struct delete_dispatch {
     static void doit(pointer p) {
       // automatically skipped if T has trivial destructor
       p->~element_type();
@@ -174,8 +172,7 @@ private:
     }
   };
 
-  template <typename U>
-  struct delete_dispatch<U[]> {
+  template <typename U> struct delete_dispatch<U[]> {
     static void doit(pointer iter) {
       auto end_p = array_end_p(iter);
       auto p = reinterpret_cast<pointer>(end_p);
@@ -188,8 +185,7 @@ private:
     }
   };
 
-  template <typename U, std::size_t N>
-  struct delete_dispatch<U[N]> {
+  template <typename U, std::size_t N> struct delete_dispatch<U[N]> {
     static void doit(pointer p) {
       if (!::boost::has_trivial_destructor<element_type>::value) {
         auto iter = p;
@@ -228,20 +224,15 @@ private:
 
   template <typename U, unsigned M> friend class tagged_ptr;
 
-  // templated friend function cannot be implemented inline
-  template <typename U, unsigned M>
-  friend struct detail::make_dispatch;
+  template <typename U, unsigned M> friend struct detail::make_dispatch;
 
   bits_type value;
 };
 
 namespace detail {
-
-template <typename T, unsigned Nbits>
-struct make_dispatch {
+template <typename T, unsigned Nbits> struct make_dispatch {
   template <typename... Args>
-  static
-  tagged_ptr<T, Nbits> make(Args&&... args) {
+  static tagged_ptr<T, Nbits> doit(Args &&... args) {
     tagged_ptr<T, Nbits> p;
     auto address = ::boost::alignment::aligned_alloc(
         detail::max(detail::pow2(Nbits),
@@ -256,15 +247,14 @@ struct make_dispatch {
 template <typename T, unsigned Nbits, std::size_t N>
 struct make_dispatch<T[N], Nbits> {
   template <typename... Args>
-  static
-  tagged_ptr<T[N], Nbits> make(Args &&... args) {
+  static tagged_ptr<T[N], Nbits> doit(Args &&... args) {
     tagged_ptr<T[N], Nbits> p;
     auto address = ::boost::alignment::aligned_alloc(
         detail::max(detail::pow2(Nbits),
                     ::boost::alignment::alignment_of<T>::value),
         N * sizeof(T));
     p.value = reinterpret_cast<decltype(p.value)>(address);
-    auto iter = reinterpret_cast<T*>(address);
+    auto iter = reinterpret_cast<T *>(address);
     for (decltype(N) i = 0; i < N; ++i) {
       new (iter++) T(std::forward<Args>(args)...);
     }
@@ -272,11 +262,9 @@ struct make_dispatch<T[N], Nbits> {
   }
 };
 
-template <typename T, unsigned Nbits>
-struct make_dispatch<T[], Nbits> {
+template <typename T, unsigned Nbits> struct make_dispatch<T[], Nbits> {
   template <typename... Args>
-  static
-  tagged_ptr<T[], Nbits> make(std::size_t size, Args &&... args) {
+  static tagged_ptr<T[], Nbits> doit(std::size_t size, Args &&... args) {
     tagged_ptr<T[], Nbits> p;
     auto address = reinterpret_cast<char *>(::boost::alignment::aligned_alloc(
         detail::max(detail::pow2(Nbits),
@@ -291,13 +279,13 @@ struct make_dispatch<T[], Nbits> {
     return p;
   }
 };
-}
+} // namespace detail
 
 template <typename T, unsigned Nbits, class... Args>
 tagged_ptr<T, Nbits> make_tagged(Args &&... args) {
-  return detail::make_dispatch<T, Nbits>::make(std::forward<Args>(args)...);
+  return detail::make_dispatch<T, Nbits>::doit(std::forward<Args>(args)...);
 }
 
-}
+} // namespace stateful_pointer
 
 #endif
