@@ -6,7 +6,7 @@ A pointer occupies 32 or 64 bit, which is 4 or 8 bytes just to remember a memory
 
 The library uses [Boost.Align](http://www.boost.org/doc/libs/1_65_1/doc/html/align.html) to allocate aligned memory on all platforms. On most platforms (Windows, MacOS, Linux, Android, ...), special system calls are used to get aligned memory at no additional cost. On other platforms, extra memory is allocated to guarantee the alignment of the pointer. The amount grows with the number of bits in the pointer that are used to carry extra state. In either case, the pointers of the *Stateful Pointer Library* are guaranteed to have the same size as a normal pointer.
 
-**Caveat**: The library uses custom memory allocation to work its magic, so it does work with classes/environments that also customize heap allocation.
+**Caveat**: The library uses custom memory allocation to work its magic, so it does *not* work with classes/environments that also customize heap allocation.
 
 Code is released under the **Boost Software License v1.0** (see LICENSE file).
 
