@@ -43,7 +43,7 @@ public:
       reinterpret_cast<bits_type &>(value) |= count << 1;
       // value.bit(0) remains false
     } else { // normal use
-      value = make_tagged_array<value_type, 1>(count + 1);
+      value = make_tagged<value_type[], 1>(count + 1);
       value.bit(0, true);
       auto cp = value.get();
       std::fill_n(cp, count, ch);
@@ -166,7 +166,7 @@ private:
 
     // allocate new memory
     // value.bit(0) == true marks normal pointer use
-    value = make_tagged_array<value_type, 1>(n + 1);
+    value = make_tagged<value_type[], 1>(n + 1);
     value.bit(0, true);
     auto cp = value.get();
     std::copy(first, last, cp);

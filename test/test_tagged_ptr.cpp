@@ -25,7 +25,7 @@ int main() {
 
     destructor_count_test_type = 0;
     {   // basic usage
-        auto p = make_tagged_ptr<test_type, 2>(2, 3);
+        auto p = make_tagged<test_type, 2>(2, 3);
 
         BOOST_TEST(!!p);
         BOOST_TEST_EQ(static_cast<bool>(p), true);
@@ -64,7 +64,7 @@ int main() {
 
     destructor_count_test_type = 0;
     {   // basic usage of array version
-        auto a = make_tagged_array<test_type, 2>(10, 2, 3);
+        auto a = make_tagged<test_type[], 2>(10, 2, 3);
 
         BOOST_TEST(!!a);
         BOOST_TEST_EQ(a.size(), 10);
@@ -85,7 +85,7 @@ int main() {
         BOOST_TEST(!p); // still nullptr...
         BOOST_TEST(p != (tagged_ptr<test_type, 3>())); // ... but not null
 
-        auto q = make_tagged_ptr<test_type, 3>(); // default constructed
+        auto q = make_tagged<test_type, 3>(); // default constructed
         BOOST_TEST(q != (tagged_ptr<test_type, 3>())); // not nullptr
         q.bits(BOOST_BINARY( 101 ));
         BOOST_TEST_EQ(p.bits(), q.bits());
@@ -96,7 +96,7 @@ int main() {
         destructor_count_test_type = 0;
         test_type* tp = nullptr;
         {
-            auto p = make_tagged_ptr<test_type, 2>(2, 3);
+            auto p = make_tagged<test_type, 2>(2, 3);
             tp = p.release();
         }
         BOOST_TEST_EQ(destructor_count_test_type, 0);
@@ -106,7 +106,7 @@ int main() {
 
     destructor_count_test_type = 0;
     {   // move ctor and assign
-        auto p = make_tagged_ptr<test_type, 2>(2, 3);
+        auto p = make_tagged<test_type, 2>(2, 3);
         p.bit(0, false);
         p.bit(1, true);
 
@@ -127,9 +127,9 @@ int main() {
 
     destructor_count_test_type = 0;
     {   // swap
-        auto p = make_tagged_ptr<test_type, 3>(2, 3);
+        auto p = make_tagged<test_type, 3>(2, 3);
         p.bits(BOOST_BINARY( 101 ));
-        auto q = make_tagged_ptr<test_type, 3>(4, 5);
+        auto q = make_tagged<test_type, 3>(4, 5);
         q.bits(BOOST_BINARY( 010 ));
 
         std::swap(p, q);
@@ -168,7 +168,7 @@ int main() {
         struct derived2 : public base {};
 
         {
-            auto d = make_tagged_ptr<derived, 3>();
+            auto d = make_tagged<derived, 3>();
             d.bits(BOOST_BINARY( 101 ));
             tagged_ptr<base, 3> b = std::move(d);
             BOOST_TEST_EQ(b.bits(), BOOST_BINARY( 101 ));

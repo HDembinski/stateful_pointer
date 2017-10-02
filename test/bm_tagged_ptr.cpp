@@ -15,7 +15,7 @@ static void unique_ptr_creation(benchmark::State& state) {
 template <typename T>
 static void tagged_ptr_creation(benchmark::State& state) {
     while (state.KeepRunning()) {
-        benchmark::DoNotOptimize(sp::make_tagged_ptr<T, 4>());
+        benchmark::DoNotOptimize(sp::make_tagged<T, 4>());
     }
 }
 
@@ -29,7 +29,7 @@ static void unique_ptr_access(benchmark::State& state) {
 
 template <typename T>
 static void tagged_ptr_access(benchmark::State& state) {
-    auto p = sp::make_tagged_ptr<T, 4>();
+    auto p = sp::make_tagged<T, 4>();
     while (state.KeepRunning()) {
         benchmark::DoNotOptimize(p.get());
     }

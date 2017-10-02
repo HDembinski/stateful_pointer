@@ -6,7 +6,7 @@
 #include "boost/assert.hpp"
 #include "boost/cstdint.hpp"
 #include "boost/type_traits.hpp"
-#include "cstddef"
+#include <cstddef>
 
 namespace stateful_pointer {
 
@@ -117,19 +117,20 @@ public:
     return tmp;
   }
 
-  /// reset ptr and bits to p
+  /// reset pointer and bits to p
   void reset(tagged_ptr p = tagged_ptr()) noexcept { p.swap(*this); }
 
+  /// swap pointer and bits with other
   void swap(tagged_ptr &other) noexcept { std::swap(value, other.value); }
 
   /// dereference operator, throws error in debug mode if pointer is null
   auto operator*() const -> reference {
     const auto p = get();
-    BOOST_ASSERT(p != pointer());
+    BOOST_ASSERT(p != nullptr);
     return *p;
   }
 
-  /// array element access (only for array version)
+  /// array element access (only for array version), throws error in debug mode if bounds are violated
   template <typename U = T,
             typename = typename ::boost::enable_if<::boost::is_array<U>>::type>
   reference operator[](pos_type i) const {
@@ -141,7 +142,7 @@ public:
   /// array size (only for array version)
   template <typename U = T,
             typename = typename ::boost::enable_if<::boost::is_array<U>>::type>
-  pos_type size() const {
+  pos_type size() const noexcept {
     const auto p = get();
     return *array_end_p(p) - p;
   }
@@ -196,17 +197,20 @@ private:
 
   // templated friend function cannot be implemented inline
   template <typename U, unsigned M, class... Args>
-  friend tagged_ptr<U, M> make_tagged_ptr(Args &&...);
+  friend typename ::boost::disable_if<::boost::is_array<U>, tagged_ptr<U, M>>::type
+  make_tagged(Args &&...);
 
   // templated friend function cannot be implemented inline
   template <typename U, unsigned M, class... Args>
-  friend tagged_ptr<U[], M> make_tagged_array(std::size_t, Args &&...);
+  friend typename ::boost::enable_if<::boost::is_array<U>, tagged_ptr<U, M>>::type
+  make_tagged(std::size_t, Args &&...);
 
   bits_type value;
 };
 
 template <typename T, unsigned Nbits, class... Args>
-tagged_ptr<T, Nbits> make_tagged_ptr(Args &&... args) {
+typename ::boost::disable_if<::boost::is_array<T>, tagged_ptr<T, Nbits>>::type
+make_tagged(Args &&... args) {
   tagged_ptr<T, Nbits> p;
   auto address = ::boost::alignment::aligned_alloc(
       detail::max(detail::pow2(Nbits),
@@ -218,18 +222,20 @@ tagged_ptr<T, Nbits> make_tagged_ptr(Args &&... args) {
 }
 
 template <typename T, unsigned Nbits, class... Args>
-tagged_ptr<T[], Nbits> make_tagged_array(std::size_t size, Args &&... args) {
-  tagged_ptr<T[], Nbits> p;
+typename ::boost::enable_if<::boost::is_array<T>, tagged_ptr<T, Nbits>>::type
+make_tagged(std::size_t size, Args &&... args) {
+  tagged_ptr<T, Nbits> p;
+  using TElem = typename ::boost::remove_extent<T>::type;
   auto address = reinterpret_cast<char *>(::boost::alignment::aligned_alloc(
       detail::max(detail::pow2(Nbits),
-                  ::boost::alignment::alignment_of<T>::value),
-      sizeof(T *) + size * sizeof(T)));
-  auto iter = reinterpret_cast<T *>(address + sizeof(T *));
+                  ::boost::alignment::alignment_of<TElem>::value),
+      sizeof(TElem *) + size * sizeof(TElem)));
+  auto iter = reinterpret_cast<TElem *>(address + sizeof(TElem *));
   const auto end = iter + size;
-  *reinterpret_cast<T **>(address) = end;
+  *reinterpret_cast<TElem **>(address) = end;
   p.value = reinterpret_cast<decltype(p.value)>(iter);
   while (iter != end)
-    new (iter++) T(std::forward<Args>(args)...);
+    new (iter++) TElem(std::forward<Args>(args)...);
   return p;
 }
 }
