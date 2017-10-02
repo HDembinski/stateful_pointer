@@ -17,11 +17,9 @@ Like `std::unique_ptr` in interface and behavior, but encodes `N` extra bits of 
 ```c++
 #include "stateful_pointer/tagged_ptr.hpp"
 #include "boost/utility/binary.hpp" // macro to make binary literals
+#include <cassert>
 
 using namespace stateful_pointer;
-
-// tagged_ptr has the same size as a normal pointer
-static_assert(sizeof(tagged_ptr<A, 4>) == sizeof(void*));
 
 int main() {
 
@@ -30,6 +28,9 @@ int main() {
         int a;
         A(int x) : a(x) {}
     };
+
+    // tagged_ptr has the same size as a normal pointer
+    assert(sizeof(tagged_ptr<A, 4>) == sizeof(void*));
 
     // make tagged_ptr to an instance of A with 4 bits of extra state
     auto p = make_tagged<A, 4>(3); // 3 is passed to the ctor of A
@@ -49,13 +50,14 @@ The World's most compact STL-compliant string with *small string optimization*. 
 
 ```c++
 #include "stateful_pointer/string.hpp"
+#include <cassert>
 
 using namespace stateful_pointer;
 
-// string has the same size as a normal pointer
-static_assert(sizeof(string) == sizeof(void*));
-
 int main() {
+    // string has the same size as a normal pointer
+    assert(sizeof(string) == sizeof(void*));
+
     string s("foo bar"); // small string optimisation: no heap allocation
     std::cout << s << std::endl;
 
