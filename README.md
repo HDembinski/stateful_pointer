@@ -1,6 +1,6 @@
 # Stateful Pointer Library
 
-Sometimes space is tight! What if you could squeeze *extra state into a pointer *at (almost) no additional cost*?
+Sometimes space is tight! What if you could squeeze *extra state* into a pointer *at (almost) no additional cost*?
 
 A pointer occupies 32 or 64 bit, which is 4 or 8 bytes just to remember a memory address. Not all of those bits are actually used because the computer needs *aligned* memory addresses. The *Stateful Pointer Library* is a C++11 header-only library. It provides pointer types which mimic `std::unique_ptr` and allow you to use up to 24 bits to store extra state inside the pointer. These freely useable bits are encoded inside the pointer itself and occupy *no extra space*.
 
