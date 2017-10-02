@@ -1,15 +1,15 @@
 #ifndef STATEFUL_POINTER_STRING_HPP
 #define STATEFUL_POINTER_STRING_HPP
 
-#include "boost/cstdint.hpp"
 #include "stateful_pointer/tagged_ptr.hpp"
+#include "boost/cstdint.hpp"
 // #include "boost/assert.hpp"
 // #include "boost/type_traits.hpp"
-#include "algorithm"
 #include "boost/utility/binary.hpp"
-#include "cstddef"
-#include "ostream"
-#include "stdexcept"
+#include <cstddef>
+#include <algorithm>
+#include <ostream>
+#include <stdexcept>
 
 namespace stateful_pointer {
 
